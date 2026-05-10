@@ -464,7 +464,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-[var(--text-muted)]">Data source</span>
-              <span>api-sports.io</span>
+              <span>football-data.org</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[var(--text-muted)]">Model</span>
@@ -473,6 +473,10 @@ export default function SettingsPage() {
             <div className="flex justify-between">
               <span className="text-[var(--text-muted)]">Season</span>
               <span>2025/26</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[var(--text-muted)]">Form data</span>
+              <span>Last 30 days (live)</span>
             </div>
           </div>
         </Section>
