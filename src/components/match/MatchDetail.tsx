@@ -7,6 +7,13 @@ interface Props {
   analysis: MatchAnalysis;
 }
 
+function TeamCrestLg({ crest, name }: { crest: string; name: string }) {
+  if (crest.startsWith('http')) {
+    return <img src={crest} alt={name} className="w-16 h-16 object-contain" />;
+  }
+  return <span className="text-5xl leading-none">{crest}</span>;
+}
+
 export function MatchDetail({ analysis }: Props) {
   const { match, prediction, odds, aiAnalysis, valueOpportunities, homeStats, awayStats, homeSquad, awaySquad } = analysis;
   const kickoff = new Date(match.kickoff);
@@ -14,24 +21,38 @@ export function MatchDetail({ analysis }: Props) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Match header */}
-      <div className="card text-center py-6">
-        <div className="text-xs text-[var(--text-muted)] font-medium uppercase tracking-widest mb-4">
-          {match.league.replace('-', ' ')} • {kickoff.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} • {kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-        </div>
+      <div className="card text-center py-8 relative overflow-hidden">
+        {/* Subtle background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--edge-green)]/[0.03] to-transparent pointer-events-none" />
 
-        <div className="flex items-center justify-center gap-8">
-          <div className="text-center">
-            <div className="text-4xl mb-2">{match.homeTeam.crest}</div>
-            <div className="font-display text-lg font-bold">{match.homeTeam.name}</div>
-            <div className="mt-2"><FormDisplay form={homeStats.recentForm} /></div>
+        <div className="relative">
+          <div className="label-xs mb-5">
+            {match.league.replace(/-/g, ' ')} &nbsp;·&nbsp;
+            {kickoff.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} &nbsp;·&nbsp;
+            {kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
           </div>
 
-          <div className="font-display text-2xl text-[var(--text-muted)] font-bold">vs</div>
+          <div className="flex items-center justify-center gap-6 sm:gap-12">
+            <div className="text-center flex-1">
+              <div className="flex justify-center mb-3">
+                <TeamCrestLg crest={match.homeTeam.crest} name={match.homeTeam.name} />
+              </div>
+              <div className="font-display text-base sm:text-lg font-bold mb-2">{match.homeTeam.name}</div>
+              <div className="flex justify-center"><FormDisplay form={homeStats.recentForm} /></div>
+            </div>
 
-          <div className="text-center">
-            <div className="text-4xl mb-2">{match.awayTeam.crest}</div>
-            <div className="font-display text-lg font-bold">{match.awayTeam.name}</div>
-            <div className="mt-2"><FormDisplay form={awayStats.recentForm} /></div>
+            <div className="shrink-0 text-center">
+              <div className="font-display text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">vs</div>
+              <div className="w-px h-8 bg-[var(--border-subtle)] mx-auto" />
+            </div>
+
+            <div className="text-center flex-1">
+              <div className="flex justify-center mb-3">
+                <TeamCrestLg crest={match.awayTeam.crest} name={match.awayTeam.name} />
+              </div>
+              <div className="font-display text-base sm:text-lg font-bold mb-2">{match.awayTeam.name}</div>
+              <div className="flex justify-center"><FormDisplay form={awayStats.recentForm} /></div>
+            </div>
           </div>
         </div>
       </div>
@@ -215,7 +236,11 @@ export function MatchDetail({ analysis }: Props) {
         ].map(({ team, squad, stats }) => (
           <div key={team.id} className="card">
             <h3 className="font-display text-sm font-bold mb-3 flex items-center gap-2">
-              <span>{team.crest}</span> {team.shortName}
+              {team.crest.startsWith('http')
+                ? <img src={team.crest} alt={team.shortName} className="w-5 h-5 object-contain" />
+                : <span>{team.crest}</span>
+              }
+              {team.shortName}
             </h3>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
