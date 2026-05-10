@@ -63,7 +63,7 @@ export default function Home() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/matches').then(r => r.json()),
+      fetch('/api/matches').then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(d))),
       fetch('/api/stats').then(r => r.json()),
     ])
       .then(([matchData, statsData]) => {
@@ -217,29 +217,47 @@ export default function Home() {
                 {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
               </div>
             ) : error ? (
-              <div className="card text-center py-12">
-                <div className="text-3xl mb-3">⚡</div>
-                <p className="font-display text-sm font-bold mb-1">Failed to load matches</p>
-                <p className="text-xs text-[var(--text-muted)] mt-1">Check your API keys or try again shortly.</p>
+              <div className="card text-center py-12 border-[var(--edge-amber)]/20">
+                <div className="w-10 h-10 rounded-full bg-[var(--edge-amber)]/10 flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-5 h-5 text-[var(--edge-amber)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  </svg>
+                </div>
+                <p className="font-display text-sm font-bold mb-1">Live data temporarily unavailable</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1 max-w-xs mx-auto">The football API is taking too long to respond. This is usually transient.</p>
                 <button
-                  onClick={() => { setLoading(true); setError(false); fetch('/api/matches').then(r => r.json()).then(d => setAnalyses(d.matches ?? [])).catch(() => setError(true)).finally(() => setLoading(false)); }}
+                  onClick={() => {
+                    setLoading(true); setError(false);
+                    fetch('/api/matches')
+                      .then(r => r.json())
+                      .then(d => setAnalyses(d.matches ?? []))
+                      .catch(() => setError(true))
+                      .finally(() => setLoading(false));
+                  }}
                   className="mt-4 px-4 py-2 text-xs font-medium rounded-lg bg-[var(--surface-3)] hover:bg-[var(--surface-4)] transition-colors"
                 >
                   Retry
                 </button>
               </div>
+            ) : analyses.length === 0 ? (
+              <div className="card text-center py-12 border-dashed">
+                <p className="font-display text-sm font-bold mb-1">No upcoming fixtures</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1 max-w-xs mx-auto">
+                  No matches are scheduled in the next 10 days across the tracked leagues. Check back soon.
+                </p>
+              </div>
             ) : filtered.length === 0 ? (
               <div className="card text-center py-12">
-                <div className="text-3xl mb-3">
-                  {search ? '🔍' : recoFilter !== 'all' ? '🎯' : '📭'}
+                <div className="w-8 h-8 rounded-full bg-[var(--surface-3)] flex items-center justify-center mx-auto mb-3 text-sm">
+                  {search ? '🔍' : '🎯'}
                 </div>
                 <p className="font-display text-sm font-bold mb-1">
-                  {search ? `No results for "${search}"` : recoFilter === 'bet' ? 'No strong bets today' : 'No matches found'}
+                  {search ? `No results for "${search}"` : recoFilter === 'bet' ? 'No strong bets today' : 'No matches match this filter'}
                 </p>
                 <p className="text-xs text-[var(--text-muted)] mt-1">
                   {recoFilter === 'bet'
                     ? "That's discipline — no edge today means no bet today."
-                    : 'Try adjusting your filters or check back later.'}
+                    : 'Try adjusting your filters.'}
                 </p>
               </div>
             ) : (

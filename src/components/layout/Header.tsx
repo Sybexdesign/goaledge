@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 const NAV = [
   { label: 'Dashboard', href: '/' },
@@ -10,8 +11,27 @@ const NAV = [
   { label: 'Settings', href: '/settings' },
 ];
 
+function useBankroll() {
+  const [value, setValue] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(d => {
+        const history: { value: number }[] = d.bankrollHistory ?? [];
+        if (history.length > 0) {
+          setValue(history[history.length - 1].value);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  return value;
+}
+
 export function Header() {
   const pathname = usePathname();
+  const bankroll = useBankroll();
 
   return (
     <header className="border-b border-white/[0.06] bg-[var(--surface-0)]/80 backdrop-blur-md sticky top-0 z-50">
@@ -45,14 +65,16 @@ export function Header() {
           })}
         </nav>
 
-        {/* Bankroll + avatar */}
+        {/* Live bankroll + avatar */}
         <div className="flex items-center gap-3">
           <div className="hidden sm:block text-right">
             <div className="text-xs text-[var(--text-muted)]">Bankroll</div>
-            <div className="font-mono text-sm font-bold text-[var(--edge-green)]">£541.20</div>
+            <div className="font-mono text-sm font-bold text-[var(--edge-green)]">
+              {bankroll !== null ? `£${bankroll.toFixed(2)}` : '—'}
+            </div>
           </div>
-          <div className="w-8 h-8 rounded-full bg-[var(--surface-3)] flex items-center justify-center text-xs font-bold">
-            U
+          <div className="w-8 h-8 rounded-full bg-[var(--surface-3)] flex items-center justify-center text-xs font-bold text-[var(--text-muted)]">
+            G
           </div>
         </div>
       </div>
