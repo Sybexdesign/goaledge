@@ -5,9 +5,17 @@ import { Header } from '@/components/layout/Header';
 import { MatchList } from '@/components/dashboard/MatchList';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { BankrollChart } from '@/components/dashboard/BankrollChart';
-import { mockDashboardStats } from '@/data/mock';
 import { getBestBet } from '@/lib/decision';
-import type { MatchAnalysis } from '@/types';
+import type { MatchAnalysis, UserDashboardStats } from '@/types';
+
+const DEFAULT_STATS: UserDashboardStats = {
+  totalBets: 0,
+  winRate: 0,
+  roi: 0,
+  profit: 0,
+  disciplineScore: 50,
+  bankrollHistory: [{ date: new Date().toISOString().split('T')[0], value: 500 }],
+};
 
 const LEAGUES = [
   { label: 'All', value: 'all' },
@@ -44,6 +52,7 @@ function SkeletonCard() {
 
 export default function Home() {
   const [analyses, setAnalyses] = useState<MatchAnalysis[]>([]);
+  const [stats, setStats] = useState<UserDashboardStats>(DEFAULT_STATS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [search, setSearch] = useState('');
@@ -52,9 +61,14 @@ export default function Home() {
   const [highConf, setHighConf] = useState(false);
 
   useEffect(() => {
-    fetch('/api/matches')
-      .then(r => r.json())
-      .then(d => setAnalyses(d.matches ?? []))
+    Promise.all([
+      fetch('/api/matches').then(r => r.json()),
+      fetch('/api/stats').then(r => r.json()),
+    ])
+      .then(([matchData, statsData]) => {
+        setAnalyses(matchData.matches ?? []);
+        setStats({ ...DEFAULT_STATS, ...statsData });
+      })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
@@ -92,7 +106,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
         {/* Stats row */}
-        <DashboardStats stats={mockDashboardStats} />
+        <DashboardStats stats={stats} />
 
         {/* Today's picks banner */}
         {!loading && summary.bet > 0 && (
@@ -246,7 +260,7 @@ export default function Home() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <BankrollChart data={mockDashboardStats.bankrollHistory} />
+            <BankrollChart data={stats.bankrollHistory} />
 
             {/* Edge summary */}
             {!loading && !error && (
@@ -281,7 +295,7 @@ export default function Home() {
               </h3>
               <div className="flex items-end gap-3">
                 <span className="font-display text-4xl font-bold text-[var(--edge-green)]">
-                  {mockDashboardStats.disciplineScore}
+                  {stats.disciplineScore}
                 </span>
                 <span className="text-sm text-[var(--text-muted)] mb-1">/100</span>
               </div>
@@ -289,10 +303,10 @@ export default function Home() {
                 <div
                   className="prob-bar-fill"
                   style={{
-                    width: `${mockDashboardStats.disciplineScore}%`,
-                    background: mockDashboardStats.disciplineScore > 70
+                    width: `${stats.disciplineScore}%`,
+                    background: stats.disciplineScore > 70
                       ? 'var(--edge-green)'
-                      : mockDashboardStats.disciplineScore > 40
+                      : stats.disciplineScore > 40
                         ? 'var(--edge-amber)'
                         : 'var(--edge-red)',
                   }}
