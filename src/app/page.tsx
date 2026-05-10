@@ -60,6 +60,8 @@ export default function Home() {
   const [leagueFilter, setLeagueFilter] = useState('all');
   const [recoFilter, setRecoFilter] = useState<RecoFilter>('all');
   const [highConf, setHighConf] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
 
   useEffect(() => {
     Promise.all([
@@ -75,6 +77,7 @@ export default function Home() {
   }, []);
 
   const filtered = useMemo(() => {
+    setPage(1);
     return analyses.filter(a => {
       if (search) {
         const q = search.toLowerCase();
@@ -91,6 +94,9 @@ export default function Home() {
       return true;
     });
   }, [analyses, search, leagueFilter, recoFilter, highConf]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const hasFilters = search || leagueFilter !== 'all' || recoFilter !== 'all' || highConf;
 
@@ -196,6 +202,7 @@ export default function Home() {
             <p className="text-xs text-[var(--text-muted)]">
               {filtered.length} {filtered.length === 1 ? 'match' : 'matches'}
               {hasFilters ? ' matching filters' : ' upcoming'}
+              {totalPages > 1 && ` · page ${page} of ${totalPages}`}
             </p>
             {hasFilters && (
               <button
@@ -266,7 +273,52 @@ export default function Home() {
                 </p>
               </div>
             ) : (
-              <MatchList analyses={filtered} />
+              <>
+                <MatchList analyses={paginated} />
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 px-1">
+                    <button
+                      onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      disabled={page === 1}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--surface-2)] border border-white/[0.06] text-[var(--text-secondary)] hover:bg-[var(--surface-3)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Prev
+                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                        <button
+                          key={p}
+                          onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className={`w-8 h-8 rounded-lg text-xs font-mono font-bold transition-colors ${
+                            p === page
+                              ? 'bg-[var(--edge-green)]/15 text-[var(--edge-green)] border border-[var(--edge-green)]/30'
+                              : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text-secondary)]'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      disabled={page === totalPages}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--surface-2)] border border-white/[0.06] text-[var(--text-secondary)] hover:bg-[var(--surface-3)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Next
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
