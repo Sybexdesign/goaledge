@@ -1,5 +1,4 @@
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -9,16 +8,22 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/';
 
   if (code) {
-    const cookieStore = cookies();
+    const redirectTo = type === 'recovery'
+      ? `${origin}/auth/update-password`
+      : `${origin}${next}`;
+
+    const response = NextResponse.redirect(redirectTo);
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() { return cookieStore.getAll(); },
+          getAll() { return request.cookies.getAll(); },
           setAll(cookiesToSet) {
+            // Set cookies on the redirect response so session persists
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              response.cookies.set(name, value, options)
             );
           },
         },
@@ -26,13 +31,7 @@ export async function GET(request: NextRequest) {
     );
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      // Password reset — send to update-password page
-      if (type === 'recovery') {
-        return NextResponse.redirect(`${origin}/auth/update-password`);
-      }
-      return NextResponse.redirect(`${origin}${next}`);
-    }
+    if (!error) return response;
   }
 
   return NextResponse.redirect(`${origin}/login?error=confirmation_failed`);
