@@ -3,44 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 
-// ─── Settings schema ──────────────────────────────────────────
-
-export interface GoalEdgeSettings {
-  // Bankroll
-  bankrollAmount: number;
-  currency: 'GBP' | 'EUR' | 'USD';
-
-  // Staking
-  stakingMethod: 'kelly' | 'fixed';
-  maxStakePct: number;       // e.g. 3 → 3%
-  kellyFraction: number;     // e.g. 0.25 → quarter kelly
-  fixedStakeAmount: number;  // used when stakingMethod === 'fixed'
-
-  // Model filters
-  minConfidence: number;     // 0–100, default 62
-  minEdgePct: number;        // e.g. 3 → 3%
-  leagues: string[];
-
-  // Notifications
-  emailAlerts: boolean;
-  highConfOnly: boolean;
-}
-
-const DEFAULTS: GoalEdgeSettings = {
-  bankrollAmount: 500,
-  currency: 'GBP',
-  stakingMethod: 'kelly',
-  maxStakePct: 3,
-  kellyFraction: 0.25,
-  fixedStakeAmount: 10,
-  minConfidence: 62,
-  minEdgePct: 3,
-  leagues: ['premier-league', 'la-liga', 'serie-a', 'bundesliga', 'ligue-1'],
-  emailAlerts: false,
-  highConfOnly: false,
-};
-
-const STORAGE_KEY = 'goaledge_settings';
+import { loadSettings, SETTINGS_DEFAULTS as DEFAULTS, SETTINGS_KEY as STORAGE_KEY } from '@/lib/settings';
+import type { GoalEdgeSettings } from '@/lib/settings';
 
 const LEAGUE_OPTIONS = [
   { value: 'premier-league', label: 'Premier League' },
@@ -51,16 +15,6 @@ const LEAGUE_OPTIONS = [
 ];
 
 const CURRENCY_SYMBOLS: Record<string, string> = { GBP: '£', EUR: '€', USD: '$' };
-
-export function loadSettings(): GoalEdgeSettings {
-  if (typeof window === 'undefined') return DEFAULTS;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : DEFAULTS;
-  } catch {
-    return DEFAULTS;
-  }
-}
 
 // ─── Sub-components ───────────────────────────────────────────
 
