@@ -5,15 +5,17 @@ interface Props {
 }
 
 export function BankrollChart({ data }: Props) {
+  if (!data || data.length === 0) return null;
+
   const min = Math.min(...data.map((d) => d.value));
   const max = Math.max(...data.map((d) => d.value));
   const range = max - min || 1;
   const height = 120;
   const width = 280;
 
-  // Generate SVG path
+  // Guard against single-point: place it in the centre
   const points = data.map((d, i) => {
-    const x = (i / (data.length - 1)) * width;
+    const x = data.length === 1 ? width / 2 : (i / (data.length - 1)) * width;
     const y = height - ((d.value - min) / range) * height * 0.8 - height * 0.1;
     return { x, y };
   });
