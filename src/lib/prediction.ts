@@ -88,7 +88,7 @@ function calculateFormWeight(form: ('W' | 'D' | 'L')[]): number {
   if (form.length === 0) return 1.0;
 
   const weights = form.map((_, i) => 1 + (i === 0 ? 0.3 : i === 1 ? 0.2 : i === 2 ? 0.1 : 0));
-  const values = form.map((r) => (r === 'W' ? 1.0 : r === 'D' ? 0.5 : 0.0));
+  const values: number[] = form.map((r) => (r === 'W' ? 1.0 : r === 'D' ? 0.5 : 0.0));
 
   const weightedSum = values.reduce((sum, val, i) => sum + val * weights[i], 0);
   const totalWeight = weights.reduce((sum, w) => sum + w, 0);
