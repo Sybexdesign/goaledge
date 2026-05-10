@@ -1,7 +1,4 @@
 import { Resend } from 'resend';
-import type { BetDecision } from './decision';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export interface PickEmailData {
   homeTeam: string;
@@ -121,6 +118,10 @@ function buildEmailHtml(picks: PickEmailData[], date: string) {
 }
 
 export async function sendPicksAlert(picks: PickEmailData[], toEmail: string) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error('RESEND_API_KEY is not set');
+  const resend = new Resend(key);
+
   const date = new Date().toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
