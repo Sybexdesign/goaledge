@@ -1,22 +1,33 @@
 import type { Match, TeamStats, SquadSignals, League, FormResult } from '@/types';
 
-const BASE_URL = 'https://v3.football.api-sports.io';
-const SEASON = 2025;
+// Switched from api-sports.io (free plan limited to seasons ≤2024) to
+// football-data.org which provides current-season data on the free tier.
+const BASE_URL = 'https://api.football-data.org/v4';
 
+// Competition IDs in football-data.org's numbering (kept as LEAGUE_IDS for
+// backward-compat with matches/route.ts which does Object.keys(LEAGUE_IDS))
 export const LEAGUE_IDS: Record<League, number> = {
-  'premier-league': 39,
-  'la-liga': 140,
-  'serie-a': 135,
-  'bundesliga': 78,
-  'ligue-1': 61,
+  'premier-league': 2021,
+  'la-liga': 2014,
+  'serie-a': 2019,
+  'bundesliga': 2002,
+  'ligue-1': 2015,
 };
 
-const LEAGUE_BY_ID: Record<number, League> = {
-  39: 'premier-league',
-  140: 'la-liga',
-  135: 'serie-a',
-  78: 'bundesliga',
-  61: 'ligue-1',
+const LEAGUE_CODES: Record<League, string> = {
+  'premier-league': 'PL',
+  'la-liga': 'PD',
+  'serie-a': 'SA',
+  'bundesliga': 'BL1',
+  'ligue-1': 'FL1',
+};
+
+const COMPETITION_TO_LEAGUE: Record<number, League> = {
+  2021: 'premier-league',
+  2014: 'la-liga',
+  2019: 'serie-a',
+  2002: 'bundesliga',
+  2015: 'ligue-1',
 };
 
 // ─── API Client ──────────────────────────────────────────────
@@ -26,136 +37,165 @@ async function apiFetch<T>(path: string): Promise<T> {
   if (!key) throw new Error('FOOTBALL_DATA_API_KEY not set');
 
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'x-apisports-key': key },
+    headers: { 'X-Auth-Token': key },
     next: { revalidate: 3600 },
   });
 
-  if (!res.ok) throw new Error(`API-Sports ${res.status}: ${path}`);
-
-  const json = await res.json();
-  if (json.errors && Object.keys(json.errors).length > 0) {
-    throw new Error(`API-Sports: ${JSON.stringify(json.errors)}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`football-data.org ${res.status}: ${path} — ${body}`);
   }
 
-  return json.response as T;
+  return res.json() as Promise<T>;
 }
 
 // ─── Response Types ──────────────────────────────────────────
 
-interface ApiFixture {
-  fixture: { id: number; date: string; status: { short: string } };
-  league: { id: number };
-  teams: {
-    home: { id: number; name: string; logo: string };
-    away: { id: number; name: string; logo: string };
-  };
-  goals: { home: number | null; away: number | null };
+interface FDTeam {
+  id: number;
+  name: string;
+  shortName: string;
+  tla: string;
+  crest: string;
 }
 
-interface ApiStanding {
-  team: { id: number; name: string };
-  form: string;
-  all: {
-    played: number;
-    goals: { for: number; against: number };
+interface FDMatch {
+  id: number;
+  utcDate: string;
+  status: string;
+  homeTeam: FDTeam;
+  awayTeam: FDTeam;
+  competition: { id: number; name: string };
+  score?: {
+    fullTime?: { home: number | null; away: number | null };
   };
+}
+
+interface FDStandingRow {
+  team: FDTeam;
+  playedGames: number;
+  won: number;
+  draw: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  form: string | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
 
-function parseForm(form: string): FormResult[] {
-  const results = (form ?? '')
+function parseForm(form: string | null): FormResult[] {
+  if (!form) return ['D', 'D', 'D', 'D', 'D'];
+  const results = form
     .split('')
     .slice(-5)
     .map(c => (c === 'W' ? 'W' : c === 'L' ? 'L' : 'D') as FormResult);
-  // Pad to 5 if shorter
-  while (results.length < 5) results.push('D');
+  while (results.length < 5) results.unshift('D');
   return results;
 }
 
-function mapStatus(short: string): Match['status'] {
-  if (['1H', '2H', 'HT', 'ET', 'P', 'LIVE', 'BT'].includes(short)) return 'live';
-  if (['FT', 'AET', 'PEN'].includes(short)) return 'finished';
-  return 'scheduled';
-}
+function fdMatchToMatch(m: FDMatch): Match {
+  const league = COMPETITION_TO_LEAGUE[m.competition.id] ?? 'premier-league';
+  const status: Match['status'] =
+    m.status === 'IN_PLAY' || m.status === 'PAUSED' || m.status === 'HALFTIME'
+      ? 'live'
+      : m.status === 'FINISHED'
+      ? 'finished'
+      : 'scheduled';
 
-function abbrev(name: string): string {
-  const words = name.replace(/[^a-zA-Z ]/g, '').split(' ').filter(Boolean);
-  if (words.length === 1) return words[0].substring(0, 3).toUpperCase();
-  const initials = words.map(w => w[0]).join('');
-  if (initials.length >= 3) return initials.substring(0, 3).toUpperCase();
-  return (words[0].substring(0, 2) + words[1][0]).toUpperCase();
-}
-
-// ─── Fixtures ────────────────────────────────────────────────
-
-function fixtureToMatch(f: ApiFixture): Match {
-  const league = LEAGUE_BY_ID[f.league.id] ?? 'premier-league';
+  const ft = m.score?.fullTime;
   return {
-    id: String(f.fixture.id),
+    id: String(m.id),
     homeTeam: {
-      id: String(f.teams.home.id),
-      name: f.teams.home.name,
-      shortName: abbrev(f.teams.home.name),
-      crest: f.teams.home.logo,
+      id: String(m.homeTeam.id),
+      name: m.homeTeam.name,
+      shortName: m.homeTeam.tla || m.homeTeam.shortName?.substring(0, 3).toUpperCase() || m.homeTeam.name.substring(0, 3).toUpperCase(),
+      crest: m.homeTeam.crest || '⚽',
       league,
     },
     awayTeam: {
-      id: String(f.teams.away.id),
-      name: f.teams.away.name,
-      shortName: abbrev(f.teams.away.name),
-      crest: f.teams.away.logo,
+      id: String(m.awayTeam.id),
+      name: m.awayTeam.name,
+      shortName: m.awayTeam.tla || m.awayTeam.shortName?.substring(0, 3).toUpperCase() || m.awayTeam.name.substring(0, 3).toUpperCase(),
+      crest: m.awayTeam.crest || '⚽',
       league,
     },
     league,
-    kickoff: f.fixture.date,
-    status: mapStatus(f.fixture.status.short),
-    score:
-      f.goals.home !== null
-        ? { home: f.goals.home ?? 0, away: f.goals.away ?? 0 }
-        : undefined,
+    kickoff: m.utcDate,
+    status,
+    score: ft && ft.home !== null ? { home: ft.home ?? 0, away: ft.away ?? 0 } : undefined,
   };
 }
 
-export async function getUpcomingFixtures(league?: League): Promise<Match[]> {
-  const leagues = league ? [league] : (Object.keys(LEAGUE_IDS) as League[]);
-  const results = await Promise.all(
-    leagues.map(l =>
-      apiFetch<ApiFixture[]>(`/fixtures?league=${LEAGUE_IDS[l]}&season=${SEASON}&next=10`)
-    )
-  );
-  return results.flat().map(fixtureToMatch);
-}
-
-export async function getFixtureById(fixtureId: string): Promise<Match | null> {
-  const fixtures = await apiFetch<ApiFixture[]>(`/fixtures?id=${fixtureId}`);
-  if (!fixtures.length) return null;
-  return fixtureToMatch(fixtures[0]);
-}
-
-// ─── Standings / Team Stats ───────────────────────────────────
-
-function standingToStats(s: ApiStanding): TeamStats {
-  const played = s.all.played || 1;
+function fdStandingToStats(row: FDStandingRow): TeamStats {
+  const played = row.playedGames || 1;
   return {
-    recentForm: parseForm(s.form),
-    goalsScored: s.all.goals.for,
-    goalsConceded: s.all.goals.against,
-    xG: +(s.all.goals.for / played).toFixed(2),
-    xGA: +(s.all.goals.against / played).toFixed(2),
+    recentForm: parseForm(row.form),
+    goalsScored: row.goalsFor,
+    goalsConceded: row.goalsAgainst,
+    xG: +(row.goalsFor / played).toFixed(2),
+    xGA: +(row.goalsAgainst / played).toFixed(2),
     cleanSheets: 0,
     avgPossession: 50,
   };
 }
 
-export async function getLeagueStandingsMap(league: League): Promise<Map<string, TeamStats>> {
-  const raw = await apiFetch<Array<{ league: { standings: ApiStanding[][] } }>>(
-    `/standings?league=${LEAGUE_IDS[league]}&season=${SEASON}`
+// ─── Fixtures ────────────────────────────────────────────────
+
+export async function getUpcomingFixtures(league?: League): Promise<Match[]> {
+  const today = new Date();
+  const from = today.toISOString().split('T')[0];
+  const to = new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0];
+
+  const leagues = league ? [league] : (Object.keys(LEAGUE_IDS) as League[]);
+
+  const results = await Promise.all(
+    leagues.map(l =>
+      apiFetch<{ matches: FDMatch[] }>(
+        `/competitions/${LEAGUE_CODES[l]}/matches?dateFrom=${from}&dateTo=${to}`
+      )
+        .then(d =>
+          d.matches
+            .filter(m => ['SCHEDULED', 'TIMED'].includes(m.status))
+            .map(fdMatchToMatch)
+        )
+        .catch(() => [] as Match[])
+    )
   );
-  const standings = raw[0]?.league?.standings?.[0] ?? [];
-  const map = new Map<string, TeamStats>();
-  standings.forEach(s => map.set(String(s.team.id), standingToStats(s)));
-  return map;
+
+  return results.flat().sort((a, b) => a.kickoff.localeCompare(b.kickoff));
+}
+
+export async function getFixtureById(fixtureId: string): Promise<Match | null> {
+  try {
+    const m = await apiFetch<FDMatch>(`/matches/${fixtureId}`);
+    if (!m?.id) return null;
+    if (!COMPETITION_TO_LEAGUE[m.competition.id]) return null;
+    return fdMatchToMatch(m);
+  } catch {
+    return null;
+  }
+}
+
+// ─── Standings / Team Stats ───────────────────────────────────
+
+export async function getLeagueStandingsMap(league: League): Promise<Map<string, TeamStats>> {
+  try {
+    const data = await apiFetch<{
+      standings: Array<{ type: string; table: FDStandingRow[] }>;
+    }>(`/competitions/${LEAGUE_CODES[league]}/standings`);
+
+    const total = data.standings.find(s => s.type === 'TOTAL');
+    const map = new Map<string, TeamStats>();
+    (total?.table ?? []).forEach(row => {
+      map.set(String(row.team.id), fdStandingToStats(row));
+    });
+    return map;
+  } catch {
+    return new Map();
+  }
 }
 
 // ─── Defaults ────────────────────────────────────────────────
