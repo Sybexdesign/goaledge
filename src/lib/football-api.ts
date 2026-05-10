@@ -121,7 +121,7 @@ export async function getUpcomingFixtures(league?: League): Promise<Match[]> {
   const leagues = league ? [league] : (Object.keys(LEAGUE_IDS) as League[]);
   const results = await Promise.all(
     leagues.map(l =>
-      apiFetch<ApiFixture[]>(`/fixtures?league=${LEAGUE_IDS[l]}&season=${SEASON}&next=3`)
+      apiFetch<ApiFixture[]>(`/fixtures?league=${LEAGUE_IDS[l]}&season=${SEASON}&next=10`)
     )
   );
   return results.flat().map(fixtureToMatch);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Header } from '@/components/layout/Header';
 
 import { loadSettings, SETTINGS_DEFAULTS as DEFAULTS, SETTINGS_KEY as STORAGE_KEY } from '@/lib/settings';
@@ -17,6 +17,54 @@ const LEAGUE_OPTIONS = [
 const CURRENCY_SYMBOLS: Record<string, string> = { GBP: '£', EUR: '€', USD: '$' };
 
 // ─── Sub-components ───────────────────────────────────────────
+
+function EmailTestButton() {
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [picks, setPicks] = useState<number | null>(null);
+
+  async function sendTest() {
+    setState('sending');
+    try {
+      const res = await fetch('/api/alerts/test', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed');
+      setPicks(data.picks);
+      setState('sent');
+      setTimeout(() => setState('idle'), 5000);
+    } catch {
+      setState('error');
+      setTimeout(() => setState('idle'), 4000);
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium text-[var(--text-secondary)]">Send test alert now</p>
+        <p className="text-xs text-[var(--text-muted)] mt-0.5">
+          {state === 'sent'
+            ? `✓ Sent ${picks} ${picks === 1 ? 'pick' : 'picks'} to sybexdesigns@gmail.com`
+            : state === 'error'
+              ? '✗ Failed — check RESEND_API_KEY is set in Vercel env vars'
+              : "Sends today's picks immediately to your email"}
+        </p>
+      </div>
+      <button
+        onClick={sendTest}
+        disabled={state === 'sending'}
+        className={`shrink-0 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+          state === 'sent'
+            ? 'bg-[var(--edge-green)]/15 text-[var(--edge-green)] border border-[var(--edge-green)]/30'
+            : state === 'error'
+              ? 'bg-[var(--edge-red)]/15 text-[var(--edge-red)] border border-[var(--edge-red)]/30'
+              : 'bg-[var(--surface-3)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)]'
+        } disabled:opacity-50`}
+      >
+        {state === 'sending' ? 'Sending…' : state === 'sent' ? '✓ Sent' : state === 'error' ? '✗ Error' : 'Send now'}
+      </button>
+    </div>
+  );
+}
 
 function Section({ title, description, children }: {
   title: string;
@@ -390,14 +438,21 @@ export default function SettingsPage() {
           <div className="divider" />
 
           <Field
-            label="Email Alerts"
-            hint="Get notified when high-confidence picks are detected. (Coming soon)"
+            label="Daily Email Alerts"
+            hint="Sends today's picks to sybexdesigns@gmail.com every morning at 8 AM UTC."
           >
             <Toggle
               checked={settings.emailAlerts}
               onChange={v => update('emailAlerts', v)}
             />
           </Field>
+
+          {settings.emailAlerts && (
+            <>
+              <div className="divider" />
+              <EmailTestButton />
+            </>
+          )}
         </Section>
 
         {/* ── About ── */}

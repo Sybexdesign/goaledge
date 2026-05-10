@@ -45,9 +45,9 @@ function ConfidenceRing({ confidence }: { confidence: number }) {
 export function BestPicks({ analyses }: Props) {
   const picks = analyses
     .map(a => ({ analysis: a, decision: getBestBet(a) }))
-    .filter(({ decision }) => decision.action === 'bet' && decision.confidence >= 62)
+    .filter(({ decision }) => decision.action !== 'no-bet' && decision.confidence >= 62)
     .sort((a, b) => b.decision.confidence - a.decision.confidence)
-    .slice(0, 3);
+    .slice(0, 10);
 
   if (picks.length === 0) {
     return (
@@ -77,7 +77,7 @@ export function BestPicks({ analyses }: Props) {
             <span className="w-2 h-2 rounded-full bg-[var(--edge-green)] animate-pulse inline-block" />
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            {picks.length} high-confidence {picks.length === 1 ? 'opportunity' : 'opportunities'} — model edge confirmed
+            {picks.length} {picks.length === 1 ? 'opportunity' : 'opportunities'} with confirmed model edge
           </p>
         </div>
         <span className="badge badge-green font-display font-bold">
@@ -85,7 +85,7 @@ export function BestPicks({ analyses }: Props) {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {picks.map(({ analysis, decision }, i) => {
           const { match, prediction } = analysis;
           const kickoff = new Date(match.kickoff);
