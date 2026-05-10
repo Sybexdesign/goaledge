@@ -9,23 +9,10 @@ import {
 import { getAllMockAnalyses } from '@/data/mock';
 import { predictMatch } from '@/lib/prediction';
 import { detectValue } from '@/lib/value';
-import type { League, MatchAnalysis, BookmakerOdds } from '@/types';
+import { computeMarketOdds } from '@/lib/market-odds';
+import type { League, MatchAnalysis } from '@/types';
 
 const ALL_LEAGUES = Object.keys(LEAGUE_IDS) as League[];
-
-function stubOdds(): BookmakerOdds {
-  return {
-    homeWin: 2.10,
-    draw: 3.30,
-    awayWin: 3.50,
-    over25: 1.80,
-    under25: 2.00,
-    btts: 1.85,
-    bttNo: 1.90,
-    source: 'Estimated',
-    updatedAt: new Date().toISOString(),
-  };
-}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -48,7 +35,7 @@ export async function GET(req: NextRequest) {
     const analyses: MatchAnalysis[] = matches.map(match => {
       const homeStats = allStats.get(match.homeTeam.id) ?? defaultStats();
       const awayStats = allStats.get(match.awayTeam.id) ?? defaultStats();
-      const odds = stubOdds();
+      const odds = computeMarketOdds(homeStats, awayStats);
       const prediction = predictMatch(homeStats, awayStats);
       const valueOpportunities = detectValue(prediction, odds);
 

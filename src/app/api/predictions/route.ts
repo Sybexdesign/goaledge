@@ -4,19 +4,8 @@ import { getMockMatchAnalysis } from '@/data/mock';
 import { predictMatch } from '@/lib/prediction';
 import { detectValue } from '@/lib/value';
 import { calculateStake } from '@/lib/bankroll';
-import type { BankrollConfig, BookmakerOdds } from '@/types';
-
-const STUB_ODDS: BookmakerOdds = {
-  homeWin: 2.10,
-  draw: 3.30,
-  awayWin: 3.50,
-  over25: 1.80,
-  under25: 2.00,
-  btts: 1.85,
-  bttNo: 1.90,
-  source: 'Estimated',
-  updatedAt: new Date().toISOString(),
-};
+import { computeMarketOdds } from '@/lib/market-odds';
+import type { BankrollConfig } from '@/types';
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,7 +37,8 @@ export async function POST(req: NextRequest) {
     const awayStats = standingsMap.get(match.awayTeam.id) ?? defaultStats();
 
     const prediction = predictMatch(homeStats, awayStats);
-    const valueOpportunities = detectValue(prediction, STUB_ODDS);
+    const odds = computeMarketOdds(homeStats, awayStats);
+    const valueOpportunities = detectValue(prediction, odds);
     const stakes = valueOpportunities.map(opp => ({ ...opp, stake: calculateStake(opp, bankrollConfig) }));
 
     return NextResponse.json({ prediction, valueOpportunities: stakes });

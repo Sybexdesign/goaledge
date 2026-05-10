@@ -4,25 +4,13 @@ import { getFixtureById, getLeagueStandingsMap, defaultSquad, defaultStats } fro
 import { getMockMatchAnalysis } from '@/data/mock';
 import { predictMatch } from '@/lib/prediction';
 import { detectValue } from '@/lib/value';
+import { computeMarketOdds } from '@/lib/market-odds';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import type { BookmakerOdds } from '@/types';
 
 interface Props {
   params: { id: string };
 }
-
-const STUB_ODDS: BookmakerOdds = {
-  homeWin: 2.10,
-  draw: 3.30,
-  awayWin: 3.50,
-  over25: 1.80,
-  under25: 2.00,
-  btts: 1.85,
-  bttNo: 1.90,
-  source: 'Estimated',
-  updatedAt: new Date().toISOString(),
-};
 
 export default async function MatchPage({ params }: Props) {
   let analysis;
@@ -40,7 +28,8 @@ export default async function MatchPage({ params }: Props) {
       const awayStats = standingsMap.get(match.awayTeam.id) ?? defaultStats();
       const squad = defaultSquad();
       const prediction = predictMatch(homeStats, awayStats);
-      const valueOpportunities = detectValue(prediction, STUB_ODDS);
+      const odds = computeMarketOdds(homeStats, awayStats);
+      const valueOpportunities = detectValue(prediction, odds);
 
       analysis = {
         match,
@@ -49,7 +38,7 @@ export default async function MatchPage({ params }: Props) {
         homeSquad: squad,
         awaySquad: squad,
         prediction,
-        odds: STUB_ODDS,
+        odds,
         valueOpportunities,
         aiAnalysis: {
           summary: 'Click Analyse below to generate AI insights for this match.',
