@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,6 +60,87 @@ export default function LoginPage() {
   }
 
   return (
+    <div className="card border-[var(--border-default)]">
+      {/* Mode tabs */}
+      <div className="flex mb-6 bg-[var(--surface-2)] rounded-xl p-1 gap-1">
+        {(['signin', 'signup'] as const).map(m => (
+          <button
+            key={m}
+            onClick={() => switchMode(m)}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+              mode === m
+                ? 'bg-[var(--surface-4)] text-[var(--text-primary)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            {m === 'signin' ? 'Sign In' : 'Create Account'}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="label-xs block mb-1.5">Email address</label>
+          <input
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="input"
+          />
+        </div>
+
+        <div>
+          <label className="label-xs block mb-1.5">Password</label>
+          <input
+            type="password"
+            required
+            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder={mode === 'signup' ? 'At least 6 characters' : '••••••••'}
+            minLength={6}
+            className="input"
+          />
+        </div>
+
+        {error && (
+          <div className="rounded-lg bg-[var(--edge-red)]/10 border border-[var(--edge-red)]/25 px-3 py-2.5">
+            <p className="text-xs text-[var(--edge-red)]">{error}</p>
+          </div>
+        )}
+        {success && (
+          <div className="rounded-lg bg-[var(--edge-green)]/10 border border-[var(--edge-green)]/25 px-3 py-2.5">
+            <p className="text-xs text-[var(--edge-green)]">{success}</p>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 rounded-xl text-sm font-bold bg-[var(--edge-green)] text-black hover:opacity-90 transition-opacity disabled:opacity-50 mt-2"
+        >
+          {loading ? '…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+        </button>
+      </form>
+
+      <p className="text-center text-xs text-[var(--text-muted)] mt-5">
+        {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
+        <button
+          onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
+          className="text-[var(--edge-green)] hover:opacity-80 transition-opacity"
+        >
+          {mode === 'signin' ? 'Create one' : 'Sign in'}
+        </button>
+      </p>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       {/* Ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -84,82 +165,10 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="card border-[var(--border-default)]">
-          {/* Mode tabs */}
-          <div className="flex mb-6 bg-[var(--surface-2)] rounded-xl p-1 gap-1">
-            {(['signin', 'signup'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => switchMode(m)}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  mode === m
-                    ? 'bg-[var(--surface-4)] text-[var(--text-primary)]'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                {m === 'signin' ? 'Sign In' : 'Create Account'}
-              </button>
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="label-xs block mb-1.5">Email address</label>
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="input"
-              />
-            </div>
-
-            <div>
-              <label className="label-xs block mb-1.5">Password</label>
-              <input
-                type="password"
-                required
-                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder={mode === 'signup' ? 'At least 6 characters' : '••••••••'}
-                minLength={6}
-                className="input"
-              />
-            </div>
-
-            {error && (
-              <div className="rounded-lg bg-[var(--edge-red)]/10 border border-[var(--edge-red)]/25 px-3 py-2.5">
-                <p className="text-xs text-[var(--edge-red)]">{error}</p>
-              </div>
-            )}
-            {success && (
-              <div className="rounded-lg bg-[var(--edge-green)]/10 border border-[var(--edge-green)]/25 px-3 py-2.5">
-                <p className="text-xs text-[var(--edge-green)]">{success}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl text-sm font-bold bg-[var(--edge-green)] text-black hover:opacity-90 transition-opacity disabled:opacity-50 mt-2"
-            >
-              {loading ? '…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
-            </button>
-          </form>
-
-          <p className="text-center text-xs text-[var(--text-muted)] mt-5">
-            {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
-            <button
-              onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
-              className="text-[var(--edge-green)] hover:opacity-80 transition-opacity"
-            >
-              {mode === 'signin' ? 'Create one' : 'Sign in'}
-            </button>
-          </p>
-        </div>
+        {/* Suspense needed for useSearchParams */}
+        <Suspense fallback={<div className="card border-[var(--border-default)] py-12" />}>
+          <LoginForm />
+        </Suspense>
 
         <p className="text-center text-xs text-[var(--text-muted)] mt-6">
           Your data is private and secured with Supabase Auth.
