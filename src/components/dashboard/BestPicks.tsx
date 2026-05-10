@@ -116,9 +116,12 @@ export function BestPicks({ analyses }: Props) {
               </div>
 
               {/* League + time */}
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-2">
-                {match.league.replace(/-/g, ' ')} · {dateStr} {timeStr}
-              </p>
+              <div className="mb-2">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider leading-tight">
+                  {match.league.replace(/-/g, ' ')}
+                </p>
+                <p className="text-[10px] font-mono text-[var(--text-muted)]">{dateStr} · {timeStr}</p>
+              </div>
 
               {/* Teams + confidence ring */}
               <div className="flex items-center gap-2 mb-3">

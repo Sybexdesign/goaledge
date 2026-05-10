@@ -71,18 +71,21 @@ export function MatchList({ analyses }: Props) {
             style={{ animationDelay: `${i * 0.06}s` }}
           >
             {/* Top row: league/time + badge */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-[var(--text-muted)] font-medium uppercase tracking-wider">
-                  {match.league.replace(/-/g, ' ')}
-                </span>
-                <span className="text-[var(--text-muted)] text-xs">•</span>
-                <span className="text-xs font-mono text-[var(--text-muted)]">{dateStr} {timeStr}</span>
-                {match.status === 'live' && (
-                  <span className="badge badge-red text-[10px]">LIVE</span>
-                )}
+            <div className="flex items-start justify-between mb-3 gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] text-[var(--text-muted)] font-medium uppercase tracking-wider">
+                    {match.league.replace(/-/g, ' ')}
+                  </span>
+                  {match.status === 'live' && (
+                    <span className="badge badge-red text-[10px]">LIVE</span>
+                  )}
+                </div>
+                <span className="text-[10px] font-mono text-[var(--text-muted)]">{dateStr} · {timeStr}</span>
               </div>
-              <ActionBadge action={decision.action} />
+              <div className="shrink-0">
+                <ActionBadge action={decision.action} />
+              </div>
             </div>
 
             {/* Teams */}

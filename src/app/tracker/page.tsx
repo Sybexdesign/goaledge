@@ -278,40 +278,38 @@ function BetCard({ bet, onSettle, settling }: BetCardProps) {
       </div>
 
       {/* Market + numbers */}
-      <div className="rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] px-3 py-2.5 mb-3">
-        <div className="flex items-center justify-between">
+      <div className="rounded-lg bg-[var(--surface-2)] border border-[var(--border-subtle)] px-3 py-2.5 mb-3 space-y-2">
+        <div>
+          <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium mb-0.5">Market</p>
+          <p className="text-sm font-bold text-[var(--edge-cyan)]">{bet.market}</p>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
           <div>
-            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium mb-0.5">Market</p>
-            <p className="text-sm font-bold text-[var(--edge-cyan)]">{bet.market}</p>
+            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium mb-0.5">Stake</p>
+            <p className="font-mono text-sm font-bold">£{bet.stake.toFixed(2)}</p>
           </div>
-          <div className="flex items-center gap-4 text-right">
-            <div>
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium mb-0.5">Stake</p>
-              <p className="font-mono text-sm font-bold">£{bet.stake.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium mb-0.5">Odds</p>
-              <p className="font-mono text-sm font-bold">{bet.odds.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium mb-0.5">
-                {bet.result === 'pending' ? 'To win' : 'P&L'}
-              </p>
-              <p className={`font-mono text-sm font-bold ${
-                bet.result === 'won' ? 'text-[var(--edge-green)]' :
-                bet.result === 'lost' ? 'text-[var(--edge-red)]' :
-                'text-[var(--text-secondary)]'
-              }`}>
-                {bet.result === 'pending'
-                  ? `+£${potentialProfit}`
-                  : bet.result === 'won'
-                    ? `+£${(bet.profit ?? 0).toFixed(2)}`
-                    : bet.result === 'lost'
-                      ? `-£${bet.stake.toFixed(2)}`
-                      : '—'
-                }
-              </p>
-            </div>
+          <div>
+            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium mb-0.5">Odds</p>
+            <p className="font-mono text-sm font-bold">{bet.odds.toFixed(2)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium mb-0.5">
+              {bet.result === 'pending' ? 'To win' : 'P&L'}
+            </p>
+            <p className={`font-mono text-sm font-bold ${
+              bet.result === 'won' ? 'text-[var(--edge-green)]' :
+              bet.result === 'lost' ? 'text-[var(--edge-red)]' :
+              'text-[var(--text-secondary)]'
+            }`}>
+              {bet.result === 'pending'
+                ? `+£${potentialProfit}`
+                : bet.result === 'won'
+                  ? `+£${(bet.profit ?? 0).toFixed(2)}`
+                  : bet.result === 'lost'
+                    ? `-£${bet.stake.toFixed(2)}`
+                    : '—'
+              }
+            </p>
           </div>
         </div>
       </div>

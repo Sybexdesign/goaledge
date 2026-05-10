@@ -210,6 +210,11 @@ export default function Home() {
 
         {/* Main grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Sidebar shown first on mobile, second column on desktop */}
+          <div className="lg:hidden space-y-4">
+            <BankrollChart data={stats.bankrollHistory} />
+          </div>
+
           {/* Match list */}
           <div className="lg:col-span-2">
             {loading ? (
@@ -265,8 +270,8 @@ export default function Home() {
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+          {/* Sidebar (desktop only — mobile version shown above) */}
+          <div className="hidden lg:block space-y-6">
             <BankrollChart data={stats.bankrollHistory} />
 
             {/* Edge summary */}
