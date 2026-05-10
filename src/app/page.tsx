@@ -6,6 +6,7 @@ import { MatchList } from '@/components/dashboard/MatchList';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { BankrollChart } from '@/components/dashboard/BankrollChart';
 import { getBestBet } from '@/lib/decision';
+import { BestPicks } from '@/components/dashboard/BestPicks';
 import type { MatchAnalysis, UserDashboardStats } from '@/types';
 
 const DEFAULT_STATS: UserDashboardStats = {
@@ -108,20 +109,8 @@ export default function Home() {
         {/* Stats row */}
         <DashboardStats stats={stats} />
 
-        {/* Today's picks banner */}
-        {!loading && summary.bet > 0 && (
-          <div className="card edge-glow flex items-center justify-between">
-            <div>
-              <h2 className="font-display text-sm font-bold text-[var(--edge-green)]">TODAY&apos;S BEST BETS</h2>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                Matches where model probability significantly exceeds market pricing.
-              </p>
-            </div>
-            <span className="badge badge-green font-display font-bold text-sm px-4 py-1.5">
-              {summary.bet} picks
-            </span>
-          </div>
-        )}
+        {/* Best Picks Today */}
+        {!loading && <BestPicks analyses={analyses} />}
 
         {/* Search */}
         <div className="relative">
