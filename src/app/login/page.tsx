@@ -34,17 +34,13 @@ function LoginForm() {
         router.push('/');
         router.refresh();
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
+        const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setSuccess('Account created — check your email to confirm, then sign in.');
-        setMode('signin');
-        setPassword('');
+        // Email confirmation is off — sign in directly
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
+        router.push('/');
+        router.refresh();
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
