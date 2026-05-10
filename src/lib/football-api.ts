@@ -127,10 +127,10 @@ function fdMatchToMatch(m: FDMatch): Match {
   };
 }
 
-function fdStandingToStats(row: FDStandingRow): TeamStats {
+function fdStandingToStats(row: FDStandingRow, form: FormResult[]): TeamStats {
   const played = row.playedGames || 1;
   return {
-    recentForm: parseForm(row.form),
+    recentForm: form,
     goalsScored: row.goalsFor,
     goalsConceded: row.goalsAgainst,
     xG: +(row.goalsFor / played).toFixed(2),
@@ -138,6 +138,27 @@ function fdStandingToStats(row: FDStandingRow): TeamStats {
     cleanSheets: 0,
     avgPossession: 50,
   };
+}
+
+function computeFormFromResults(
+  teamId: string,
+  matches: FDMatch[]
+): FormResult[] {
+  const results: FormResult[] = [];
+  for (const m of matches) {
+    const ft = m.score?.fullTime;
+    if (!ft || ft.home === null || ft.away === null) continue;
+    const home = ft.home;
+    const away = ft.away;
+    if (String(m.homeTeam.id) === teamId) {
+      results.push(home > away ? 'W' : home < away ? 'L' : 'D');
+    } else if (String(m.awayTeam.id) === teamId) {
+      results.push(away > home ? 'W' : away < home ? 'L' : 'D');
+    }
+  }
+  const last5 = results.slice(-5);
+  while (last5.length < 5) last5.unshift('D');
+  return last5;
 }
 
 // ─── Fixtures ────────────────────────────────────────────────
@@ -183,14 +204,27 @@ export async function getFixtureById(fixtureId: string): Promise<Match | null> {
 
 export async function getLeagueStandingsMap(league: League): Promise<Map<string, TeamStats>> {
   try {
-    const data = await apiFetch<{
-      standings: Array<{ type: string; table: FDStandingRow[] }>;
-    }>(`/competitions/${LEAGUE_CODES[league]}/standings`);
+    const today = new Date().toISOString().split('T')[0];
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
 
-    const total = data.standings.find(s => s.type === 'TOTAL');
+    const [standingsData, recentData] = await Promise.all([
+      apiFetch<{ standings: Array<{ type: string; table: FDStandingRow[] }> }>(
+        `/competitions/${LEAGUE_CODES[league]}/standings`
+      ),
+      apiFetch<{ matches: FDMatch[] }>(
+        `/competitions/${LEAGUE_CODES[league]}/matches?status=FINISHED&dateFrom=${thirtyDaysAgo}&dateTo=${today}`
+      ).catch(() => ({ matches: [] as FDMatch[] })),
+    ]);
+
+    const recentMatches = recentData.matches ?? [];
+
+    const total = standingsData.standings.find(s => s.type === 'TOTAL');
     const map = new Map<string, TeamStats>();
     (total?.table ?? []).forEach(row => {
-      map.set(String(row.team.id), fdStandingToStats(row));
+      const form = computeFormFromResults(String(row.team.id), recentMatches);
+      map.set(String(row.team.id), fdStandingToStats(row, form));
     });
     return map;
   } catch {
