@@ -7,7 +7,7 @@ const NAV = [
   { label: 'Dashboard', href: '/' },
   { label: 'Matches', href: '/matches' },
   { label: 'Tracker', href: '/tracker' },
-  { label: 'Settings', href: '/settings', soon: true },
+  { label: 'Settings', href: '/settings' },
 ];
 
 export function Header() {
@@ -29,17 +29,6 @@ export function Header() {
         <nav className="hidden md:flex items-center gap-1">
           {NAV.map((item) => {
             const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-            if (item.soon) {
-              return (
-                <span
-                  key={item.label}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--text-muted)] cursor-not-allowed"
-                >
-                  {item.label}
-                  <span className="text-[9px] font-bold text-[var(--text-muted)] border border-white/10 px-1 rounded">SOON</span>
-                </span>
-              );
-            }
             return (
               <Link
                 key={item.label}
